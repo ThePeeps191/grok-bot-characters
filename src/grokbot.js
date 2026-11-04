@@ -400,8 +400,10 @@
       const prev = this.state;
       this.state = state;
       this._timers = [];
+      this._lookHold = 0; // release any look held by the previous state
       const s = this.s;
-      // reset
+      // reset (pending timers were dropped, so reopen eyes that a blink or wink left shut)
+      s.openL.set(1); s.openR.set(1);
       s.dots.set(0); s.bangDot.set(0); s.trails.set(0); s.eyeOp.set(1); s.scale.set(1); s.rot.set(0); s.x.set(0);
       if (state !== 'notify') s.badge.set(0);
       this.setExpression('normal');
