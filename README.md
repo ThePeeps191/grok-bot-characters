@@ -1,4 +1,4 @@
-# grok-bot-characters
+# Grok Bot Characters
 
 A recreation of the animated **Grok Bot** characters in code: the little colored blobs with two slanted white eyes that the Grok Bot beta uses as avatars for each bot or project.
 
