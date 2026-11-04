@@ -10,7 +10,7 @@ Open `index.html` in a browser. There is no build step and there are no dependen
 
 | | |
 |---|---|
-| `src/grokbot.js` | The character library (about 600 lines of vanilla JS, rendered as SVG) |
+| `src/grokbot.js` | The character library (about 700 lines of vanilla JS, rendered as SVG) |
 | `index.html` | Demo page: an interactive bot with state and action controls, a copy of the "New Bot" picker, every state, every shape, and a sidebar and thread mockup |
 | `docs/` | Preview images |
 
