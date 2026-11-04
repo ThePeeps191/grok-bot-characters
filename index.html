@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grok Bot Characters</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --bg: #F7F5F2; --panel: #FFFFFF; --panel-2: #F1EFEC; --ink: #111; --muted: #77736E; --line: #E7E3DE; --accent: #FF263C;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121212; --panel: #1B1B1B; --panel-2: #232323; --ink: #F2F2F2; --muted: #9A958F; --line: #2C2C2C; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif; }
+  main { max-width: 1080px; margin: 0 auto; padding: 48px 16px 96px; }
+  h1 { font-size: clamp(32px, 6vw, 56px); font-weight: 500; letter-spacing: -0.03em; margin: 0; display: flex; align-items: center; gap: .3em; flex-wrap: wrap; }
+  h1 .inline-bot { display: inline-block; width: .9em; height: .9em; }
+  h2 { font-size: 22px; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 4px; }
+  p.lede { color: var(--muted); max-width: 620px; margin: 12px 0 0; }
+  section { margin-top: 56px; }
+  .sub { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 24px; }
+  .btn { appearance: none; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 999px; cursor: pointer; transition: background .15s, transform .1s; }
+  .btn:hover { background: var(--panel-2); }
+  .btn:active { transform: scale(.96); }
+  .btn[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* hero */
+  .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: stretch; margin-top: 32px; }
+  .stage { display: grid; place-items: center; min-height: 360px; position: relative; overflow: hidden; }
+  .stage .label { position: absolute; left: 20px; top: 16px; font-size: 12px; color: var(--muted); }
+  .controls h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; font-weight: 600; }
+  .controls .group + .group { margin-top: 20px; }
+  @media (max-width: 760px) { .hero { grid-template-columns: 1fr; } .stage { min-height: 280px; } }
+
+  /* creator (New Bot dialog) */
+  .creator { max-width: 520px; margin: 0 auto; background: var(--bg); border-radius: 28px; padding: 26px 24px 24px; border: 1px solid var(--line); box-shadow: 0 30px 80px -40px rgba(0,0,0,.35); }
+  .avatar { width: 100px; height: 100px; border-radius: 50%; margin: 0 auto 18px; display: grid; place-items: center; transition: background .25s; }
+  .name { width: 100%; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 14px; padding: 11px 14px; text-align: center; font: inherit; font-size: 16px; }
+  .picker { background: var(--panel-2); border-radius: 18px; padding: 18px 14px; margin-top: 14px; }
+  .swatches { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px; padding: 0 8px 16px; border-bottom: 1px solid var(--line); }
+  .swatch { width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer; padding: 0; position: relative; transition: transform .12s; }
+  .swatch:hover { transform: scale(1.1); }
+  .swatch[aria-checked="true"]::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid currentColor; }
+  .swatch[aria-checked="true"] { box-shadow: inset 0 0 0 2.5px var(--panel-2); }
+  .shapes { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; padding-top: 16px; max-width: 300px; margin: 0 auto; }
+  .shape-btn { width: 40px; height: 40px; border: 0; background: none; padding: 4px; cursor: pointer; border-radius: 10px; display: grid; place-items: center; transition: transform .12s; }
+  .shape-btn:hover { transform: scale(1.12); }
+  .shape-btn svg { width: 30px; height: 30px; overflow: visible; }
+  .shape-btn path { fill: #9A9A9A; transition: fill .2s; }
+  .shape-btn[aria-checked="true"] path { stroke: var(--bg); stroke-width: .12; paint-order: stroke; }
+  .shape-btn[aria-checked="true"] svg { filter: drop-shadow(0 0 0 currentColor); }
+  .shape-btn .ring { fill: none !important; stroke-width: .1; }
+  .more { margin-top: 12px; text-align: center; }
+  .more summary { cursor: pointer; color: var(--muted); font-size: 13px; list-style: none; }
+  .more summary::-webkit-details-marker { display: none; }
+
+  /* gallery */
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 22px 10px 12px; display: grid; justify-items: center; gap: 12px; cursor: pointer; user-select: none; }
+  .tile span { font-size: 12px; color: var(--muted); }
+  .tile.extra span::after { content: " · extra"; opacity: .7; }
+
+  /* sidebar + thread */
+  .split { display: grid; grid-template-columns: 240px 1fr; gap: 16px; }
+  @media (max-width: 760px) { .split { grid-template-columns: 1fr; } }
+  .sidebar { padding: 14px 10px; }
+  .sidebar .sec { font-size: 12px; color: var(--muted); padding: 12px 10px 4px; }
+  .item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 12px; cursor: pointer; font-size: 14px; }
+  .item:hover { background: var(--panel-2); }
+  .item.active { background: var(--panel-2); }
+  .item .st { margin-left: auto; font-size: 11px; color: var(--muted); }
+  .thread { display: flex; flex-direction: column; gap: 14px; padding: 22px; min-height: 340px; }
+  .msg { display: flex; gap: 10px; align-items: flex-start; }
+  .bubble { background: var(--panel-2); padding: 10px 14px; border-radius: 16px; max-width: 520px; font-size: 14px; }
+  .msg.me { justify-content: flex-end; }
+  .msg.me .bubble { background: var(--ink); color: var(--bg); }
+  .pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 999px; background: color-mix(in srgb, var(--c) 12%, transparent); color: var(--c); font-size: 13px; font-weight: 500; }
+  .stack { display: inline-flex; }
+  .stack > * + * { margin-left: -6px; }
+
+  /* states strip */
+  .states { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 12px; }
+  .state-tile { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 26px 8px 12px; display: grid; justify-items: center; gap: 14px; }
+  .state-tile b { font-size: 13px; font-weight: 600; }
+  .state-tile code { font-size: 11px; color: var(--muted); }
+
+  footer { margin-top: 64px; color: var(--muted); font-size: 13px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Meet <span class="inline-bot" id="h1bot"></span> Grok Bot characters</h1>
+  <p class="lede">Characters drawn entirely in code, recreated from the Grok Bot beta's demo footage. There are 22 shapes and 20 colors, and every shape can morph into every other one. Each bot blinks, glances around, bounces, spits dots, types, works inside orbiting trails, and turns into a “!” when it needs you.</p>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="card stage" id="stage"><span class="label" id="stageLabel">Idle · follows your cursor</span></div>
+    <div class="card controls">
+      <div class="group"><h3>State</h3><div class="row" id="stateBtns"></div></div>
+      <div class="group"><h3>Actions</h3><div class="row" id="actionBtns"></div></div>
+      <div class="group"><h3>Expression</h3><div class="row" id="exprBtns"></div></div>
+      <div class="group"><h3>Shape</h3><div class="row" id="heroShapes" style="gap:4px"></div></div>
+      <div class="group"><h3>Color</h3><div class="row" id="heroColors" style="gap:10px"></div></div>
+    </div>
+  </div>
+
+  <!-- CREATOR -->
+  <section>
+    <h2>New Bot</h2>
+    <p class="sub">A copy of the bot-creation dialog. The first two rows are the 11 picker colors and 13 picker shapes. Open “More” for the extras.</p>
+    <div class="creator">
+      <div class="avatar" id="avatar"></div>
+      <input class="name" id="botName" value="New Bot" aria-label="Bot name">
+      <div class="picker">
+        <div class="swatches" id="swatches" role="radiogroup" aria-label="Color"></div>
+        <div class="shapes" id="shapes" role="radiogroup" aria-label="Shape"></div>
+        <details class="more"><summary>More shapes &amp; colors</summary>
+          <div class="swatches" id="swatchesX" style="padding-top:14px"></div>
+          <div class="shapes" id="shapesX"></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATES -->
+  <section>
+    <h2>States</h2>
+    <p class="sub">The work lifecycle from the demo: <b>Wait</b> (typing dots), <b>Work</b> (shape-shifting inside orbit trails), <b>Response</b> (happy bounce), plus approval, notification, sleep and error.</p>
+    <div class="states" id="states"></div>
+  </section>
+
+  <!-- GALLERY -->
+  <section>
+    <h2>Every shape</h2>
+    <p class="sub">Click a tile to cycle its color. Hover to make it look at you.</p>
+    <div class="grid" id="gallery"></div>
+  </section>
+
+  <!-- SIDEBAR + THREAD -->
+  <section>
+    <h2>In context</h2>
+    <p class="sub">The sidebar from the app, plus a thread where several bots pass work between each other.</p>
+    <div class="split">
+      <div class="card sidebar" id="sidebar"></div>
+      <div class="card thread" id="thread"></div>
+    </div>
+  </section>
+
+  <footer>
+    Independent fan recreation for learning and design study. Not affiliated with xAI or Grok. Library: <code>src/grokbot.js</code> · no dependencies.
+  </footer>
+</main>
+
+<script src="src/grokbot.js"></script>
+<script>
+(() => {
+  const G = window.GrokBot;
+  const $ = (s) => document.querySelector(s);
+  const make = (tag, cls, parent, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; if (parent) parent.appendChild(n); return n; };
+  const hex = (c) => G.COLORS[c] || c;
+
+  /* h1 bot */
+  const h1bot = new G($('#h1bot'), { size: '100%', color: 'black', extent: 1.05, mischief: false });
+  h1bot.svg.setAttribute('width', '100%'); h1bot.svg.setAttribute('height', '100%');
+
+  /* HERO */
+  const hero = new G($('#stage'), { size: 220, color: 'black', followPointer: true });
+  const stateBtns = $('#stateBtns');
+  const label = $('#stageLabel');
+  const setHeroState = (s) => {
+    hero.setState(s);
+    stateBtns.querySelectorAll('.btn').forEach((b) => b.setAttribute('aria-pressed', b.dataset.s === s));
+    label.textContent = G.STATE_LABELS[s] + (s === 'idle' ? ' · follows your cursor' : '');
+  };
+  G.STATES.forEach((s) => { const b = make('button', 'btn', stateBtns, G.STATE_LABELS[s]); b.dataset.s = s; b.onclick = () => setHeroState(s); });
+  const actions = { Blink: () => hero.blink(), 'Double blink': () => hero.blink(true), Wink: () => hero.wink(), Bounce: () => hero.bounce(), Spit: () => hero.spit(), Surprise: () => hero.surprise(), Shake: () => hero.shake(), Spin: () => hero.spin(), 'Pop in': () => hero.intro() };
+  for (const [k, fn] of Object.entries(actions)) make('button', 'btn', $('#actionBtns'), k).onclick = fn;
+  G.EXPRESSIONS.forEach((e) => { make('button', 'btn', $('#exprBtns'), e).onclick = () => hero.setExpression(e); });
+  setHeroState('idle');
+
+  const shapeIcon = (name, size = 30) => {
+    const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    s.setAttribute('viewBox', '-1.2 -1.2 2.4 2.4'); s.setAttribute('width', size); s.setAttribute('height', size);
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', G.shapePath(name)); s.appendChild(p);
+    return s;
+  };
+  G.SHAPE_NAMES.forEach((n) => {
+    const b = make('button', 'shape-btn', $('#heroShapes')); b.title = G.SHAPES[n].label; b.appendChild(shapeIcon(n, 24));
+    b.onclick = () => { hero.setShape(n); if (hero.state !== 'idle' && hero.state !== 'working') setHeroState('idle'); };
+  });
+  Object.keys(G.COLORS).forEach((c) => {
+    const b = make('button', 'swatch', $('#heroColors')); b.style.background = hex(c); b.style.color = hex(c); b.title = c; b.style.width = b.style.height = '22px';
+    b.onclick = () => { hero.setColor(c); h1bot.setColor(c); };
+  });
+
+  /* CREATOR */
+  const avatar = $('#avatar');
+  let cColor = 'red', cShape = 'flower';
+  const cBot = new G(avatar, { size: 72, color: cColor, shape: cShape });
+  const paint = () => {
+    avatar.style.background = `color-mix(in srgb, ${hex(cColor)} 20%, transparent)`;
+    document.querySelectorAll('.swatch[data-c]').forEach((b) => b.setAttribute('aria-checked', b.dataset.c === cColor));
+    document.querySelectorAll('.shape-btn[data-s]').forEach((b) => {
+      const on = b.dataset.s === cShape;
+      b.setAttribute('aria-checked', on);
+      b.style.color = hex(cColor);
+      b.querySelector('path').style.fill = on ? hex(cColor) : '';
+      b.querySelector('svg').style.filter = on ? `drop-shadow(0 0 0 ${hex(cColor)}) drop-shadow(0 0 1.5px ${hex(cColor)})` : '';
+    });
+  };
+  const addSwatch = (c, host) => {
+    const b = make('button', 'swatch', host); b.dataset.c = c; b.style.background = hex(c); b.style.color = hex(c);
+    b.setAttribute('role', 'radio'); b.title = c; b.onclick = () => { cColor = c; cBot.setColor(c); cBot.bounce(0.6); paint(); };
+  };
+  const addShape = (n, host) => {
+    const b = make('button', 'shape-btn', host); b.dataset.s = n; b.setAttribute('role', 'radio'); b.title = G.SHAPES[n].label;
+    const icon = shapeIcon(n); b.appendChild(icon);
+    // tiny static eyes, like the picker
+    const ns = 'http://www.w3.org/2000/svg', [ax, ay, es] = G.SHAPES[n].eye;
+    [-1, 1].forEach((side) => {
+      const r = document.createElementNS(ns, 'rect');
+      const w = .15 * es, h = .38 * es, x = ax + .12 * es + side * .18 * es, y = ay - .12 * es;
+      Object.entries({ x: -w / 2, y: -h / 2, width: w, height: h, rx: w / 2, fill: '#fff', transform: `translate(${x} ${y}) rotate(-18)` }).forEach(([k, v]) => r.setAttribute(k, v));
+      icon.appendChild(r);
+    });
+    b.onclick = () => { cShape = n; cBot.setShape(n); paint(); };
+  };
+  G.PICKER_COLORS.forEach((c) => addSwatch(c, $('#swatches')));
+  Object.keys(G.COLORS).filter((c) => !G.PICKER_COLORS.includes(c)).forEach((c) => addSwatch(c, $('#swatchesX')));
+  G.PICKER_SHAPES.forEach((n) => addShape(n, $('#shapes')));
+  G.SHAPE_NAMES.filter((n) => !G.PICKER_SHAPES.includes(n)).forEach((n) => addShape(n, $('#shapesX')));
+  paint();
+
+  /* STATES */
+  const stateDemo = [
+    ['idle', 'circle', 'black'], ['typing', 'circle', 'gray'], ['working', 'triangle', 'purple'], ['done', 'egg', 'green'],
+    ['alert', 'circle', 'red'], ['notify', 'circle', 'blue'], ['sleeping', 'cloud', 'indigo'], ['sad', 'drop', 'sky'], ['listening', 'hexagon', 'orange'],
+  ];
+  stateDemo.forEach(([s, shape, color]) => {
+    const t = make('div', 'state-tile', $('#states'));
+    const b = new G(t, { size: 64, shape, color, state: s });
+    make('b', '', t, G.STATE_LABELS[s]); make('code', '', t, `'${s}'`);
+    if (s === 'done') setInterval(() => b.setState('done'), 3500);
+  });
+
+  /* GALLERY */
+  const colorKeys = Object.keys(G.COLORS);
+  G.SHAPE_NAMES.forEach((n, i) => {
+    const t = make('div', 'tile' + (G.PICKER_SHAPES.includes(n) ? '' : ' extra'), $('#gallery'));
+    let ci = (i * 3) % colorKeys.length;
+    const b = new G(t, { size: 72, shape: n, color: colorKeys[ci] });
+    make('span', '', t, G.SHAPES[n].label);
+    t.onclick = () => { ci = (ci + 1) % colorKeys.length; b.setColor(colorKeys[ci]); b.bounce(0.8); };
+    t.onpointerenter = () => { b.look(0, 0.15, 1.2); b.surprise(); };
+  });
+
+  /* SIDEBAR */
+  const sidebar = $('#sidebar');
+  const groups = [
+    [null, [['Research', 'circle', 'orange'], ['Sales Outbound', 'circle', 'blue'], ['Design QA', 'squircle', 'green']]],
+    ['Tech', [['Infra', 'drop', 'orange'], ['Comms', 'triangle', 'purple'], ['On-call', 'hexagon', 'red']]],
+    ['Unassigned', [['Scout', 'triangle', 'green'], ['Notes', 'pill', 'green'], ['Recruiting', 'pill', 'red'], ['Inbox Zero', 'circle', 'green']]],
+  ];
+  const sideBots = [];
+  groups.forEach(([sec, items]) => {
+    if (sec) make('div', 'sec', sidebar, sec);
+    items.forEach(([name, shape, color]) => {
+      const it = make('div', 'item', sidebar);
+      const host = make('span', '', it);
+      const bot = new G(host, { size: 22, shape, color });
+      make('span', '', it, name);
+      const st = make('span', 'st', it);
+      sideBots.push({ it, bot, st, name });
+      it.onclick = () => {
+        sideBots.forEach((x) => x.it.classList.toggle('active', x === sideBots.find((y) => y.it === it)));
+        bot.setState('working'); st.textContent = 'working…';
+        setTimeout(() => { bot.setState('done'); st.textContent = ''; }, 3200);
+      };
+    });
+  });
+  sideBots[7].it.classList.add('active');
+  sideBots[1].bot.setState('notify'); sideBots[1].st.textContent = '1';
+  sideBots[4].bot.setState('working'); sideBots[4].st.textContent = 'working…';
+
+  /* THREAD */
+  const thread = $('#thread');
+  const msg = (who, html) => {
+    const m = make('div', 'msg' + (who ? '' : ' me'), thread);
+    if (who) { const h = make('span', '', m); new G(h, { size: 28, shape: who[0], color: who[1] }); }
+    make('div', 'bubble', m).innerHTML = html;
+    return m;
+  };
+  msg(null, 'Pull 50 lookalike accounts, find the decision makers, and queue drafts. Ask me before anything sends.');
+  msg(['circle', 'blue'], '✓ Salesforce: list pulled, 52 accounts<br>✓ LinkedIn: 4 profiles skipped (recently contacted)<br>✓ Sequencer: 36 drafts queued · 0 sent');
+  const pillRow = make('div', 'msg', thread);
+  const pill = make('span', 'pill', pillRow); pill.style.setProperty('--c', hex('teal'));
+  const dotHost = make('span', '', pill); new G(dotHost, { size: 22, color: 'teal', state: 'typing' });
+  const pillText = make('span', '', pill, 'Asking Research…');
+  const stack = make('span', 'stack', pillRow);
+  const stackBots = [['triangle', 'purple'], ['hexagon', 'red'], ['circle', 'orange']].map(([s, c]) => { const h = make('span', '', stack); return new G(h, { size: 22, shape: s, color: c }); });
+  let flip = false;
+  setInterval(() => {
+    flip = !flip;
+    pill.style.setProperty('--c', hex(flip ? 'purple' : 'teal'));
+    dotHost.firstChild.__grokbot.setColor(flip ? 'purple' : 'teal');
+    pillText.textContent = flip ? 'Looping in Comms…' : 'Asking Research…';
+    stackBots[flip ? 0 : 2].bounce(0.8);
+  }, 2600);
+  const approval = msg(['circle', 'red'], 'The top 10 drafts are ready. Send them and run this every week?');
+  const alertHost = approval.querySelector('span');
+  const alertBot = alertHost.firstChild.__grokbot;
+  setInterval(() => alertBot.setState(alertBot.state === 'alert' ? 'idle' : 'alert'), 2400);
+})();
+</script>
+</body>
+</html>
