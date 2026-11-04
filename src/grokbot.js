@@ -400,8 +400,10 @@
       const prev = this.state;
       this.state = state;
       this._timers = [];
+      this._lookHold = 0; // release any look held by the previous state
       const s = this.s;
-      // reset
+      // reset (pending timers were dropped, so reopen eyes that a blink or wink left shut)
+      s.openL.set(1); s.openR.set(1);
       s.dots.set(0); s.bangDot.set(0); s.trails.set(0); s.eyeOp.set(1); s.scale.set(1); s.rot.set(0); s.x.set(0);
       if (state !== 'notify') s.badge.set(0);
       this.setExpression('normal');
@@ -491,7 +493,12 @@
       this._after(0.9, () => this.setExpression(prev === 'surprised' ? 'normal' : prev));
       return this;
     }
-    spin() { this.s.rot.kick(rand(0, 1) < 0.5 ? -900 : 900); return this; }
+    spin(dir = Math.random() < 0.5 ? -1 : 1) {
+      // one full turn with a little overshoot, plus a hop and a squash
+      this._spin = { start: this._time, dur: 0.8, dir, from: this._spinAngle() };
+      this.s.y.kick(-4); this._squash(-0.15);
+      return this;
+    }
     intro() {
       const s = this.s; s.scale.snap(0.05); s.scale.set(1); s.scale.kick(2);
       for (let i = 0; i < 6; i++) {
@@ -520,6 +527,15 @@
     /* ---------------- internals ---------------- */
     _after(t, fn) { this._timers.push({ at: this._time + t, fn }); }
     _every(t, fn) { const tick = () => { fn(); this._after(t, tick); }; this._after(t * 0.6, tick); }
+    _spinAngle() {
+      const sp = this._spin;
+      if (!sp) return 0;
+      const p = clamp((this._time - sp.start) / sp.dur, 0, 1);
+      const c1 = 1.70158, c3 = c1 + 1; // easeOutBack
+      const e = 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2);
+      if (p >= 1) { this._spin = null; return 0; }
+      return sp.from * (1 - p) + 360 * sp.dir * e;
+    }
     _squash(a) { this.s.sx.kick(a * 9); this.s.sy.kick(-a * 9); }
 
     _morphTo(name, boing, rawPts) {
@@ -596,7 +612,7 @@
       const sx = sc * s.sx.x, sy = sc * s.sy.x;
       const ty = s.y.x * 0.08 + (1 - s.sy.x) * 0.6 * sc;
       this.body.setAttribute('d', pathFromPoints(this._p));
-      this.gBody.setAttribute('transform', `translate(${(s.x.x * 0.06).toFixed(3)} ${ty.toFixed(3)}) rotate(${(s.rot.x * 0.1).toFixed(2)}) scale(${sx.toFixed(4)} ${sy.toFixed(4)})`);
+      this.gBody.setAttribute('transform', `translate(${(s.x.x * 0.06).toFixed(3)} ${ty.toFixed(3)}) rotate(${(s.rot.x + this._spinAngle()).toFixed(2)}) scale(${sx.toFixed(4)} ${sy.toFixed(4)})`);
 
       // eyes
       const op = clamp(s.eyeOp.x, 0, 1);

@@ -44,6 +44,7 @@
   .swatches { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px; padding: 0 8px 16px; border-bottom: 1px solid var(--line); }
   .swatch { width: 26px; height: 26px; border-radius: 50%; border: 0; cursor: pointer; padding: 0; position: relative; transition: transform .12s; }
   .swatch:hover { transform: scale(1.1); }
+  .swatch.light { outline: 1px solid var(--line); outline-offset: -1px; }
   .swatch[aria-checked="true"]::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid currentColor; }
   .swatch[aria-checked="true"] { box-shadow: inset 0 0 0 2.5px var(--panel-2); }
   .shapes { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; padding-top: 16px; max-width: 300px; margin: 0 auto; }
@@ -163,13 +164,15 @@
   const $ = (s) => document.querySelector(s);
   const make = (tag, cls, parent, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text) n.textContent = text; if (parent) parent.appendChild(n); return n; };
   const hex = (c) => G.COLORS[c] || c;
+  // A black bot is nearly invisible on the dark theme, so the default ink follows the color scheme.
+  const ink = matchMedia('(prefers-color-scheme: dark)').matches ? 'white' : 'black';
 
   /* h1 bot */
-  const h1bot = new G($('#h1bot'), { size: '100%', color: 'black', extent: 1.05, mischief: false });
+  const h1bot = new G($('#h1bot'), { size: '100%', color: ink, extent: 1.05, mischief: false });
   h1bot.svg.setAttribute('width', '100%'); h1bot.svg.setAttribute('height', '100%');
 
   /* HERO */
-  const hero = new G($('#stage'), { size: 220, color: 'black', followPointer: true });
+  const hero = new G($('#stage'), { size: 220, color: ink, followPointer: true });
   const stateBtns = $('#stateBtns');
   const label = $('#stageLabel');
   const setHeroState = (s) => {
@@ -194,7 +197,7 @@
     b.onclick = () => { hero.setShape(n); if (hero.state !== 'idle' && hero.state !== 'working') setHeroState('idle'); };
   });
   Object.keys(G.COLORS).forEach((c) => {
-    const b = make('button', 'swatch', $('#heroColors')); b.style.background = hex(c); b.style.color = hex(c); b.title = c; b.style.width = b.style.height = '22px';
+    const b = make('button', 'swatch' + (c === 'white' ? ' light' : ''), $('#heroColors')); b.style.background = hex(c); b.style.color = hex(c); b.title = c; b.style.width = b.style.height = '22px';
     b.onclick = () => { hero.setColor(c); h1bot.setColor(c); };
   });
 
@@ -214,7 +217,7 @@
     });
   };
   const addSwatch = (c, host) => {
-    const b = make('button', 'swatch', host); b.dataset.c = c; b.style.background = hex(c); b.style.color = hex(c);
+    const b = make('button', 'swatch' + (c === 'white' ? ' light' : ''), host); b.dataset.c = c; b.style.background = hex(c); b.style.color = hex(c);
     b.setAttribute('role', 'radio'); b.title = c; b.onclick = () => { cColor = c; cBot.setColor(c); cBot.bounce(0.6); paint(); };
   };
   const addShape = (n, host) => {
@@ -238,7 +241,7 @@
 
   /* STATES */
   const stateDemo = [
-    ['idle', 'circle', 'black'], ['typing', 'circle', 'gray'], ['working', 'triangle', 'purple'], ['done', 'egg', 'green'],
+    ['idle', 'circle', ink], ['typing', 'circle', 'gray'], ['working', 'triangle', 'purple'], ['done', 'egg', 'green'],
     ['alert', 'circle', 'red'], ['notify', 'circle', 'blue'], ['sleeping', 'cloud', 'indigo'], ['sad', 'drop', 'sky'], ['listening', 'hexagon', 'orange'],
   ];
   stateDemo.forEach(([s, shape, color]) => {
@@ -276,10 +279,12 @@
       make('span', '', it, name);
       const st = make('span', 'st', it);
       sideBots.push({ it, bot, st, name });
+      let timer = 0;
       it.onclick = () => {
-        sideBots.forEach((x) => x.it.classList.toggle('active', x === sideBots.find((y) => y.it === it)));
+        sideBots.forEach((x) => x.it.classList.toggle('active', x.it === it));
+        clearTimeout(timer); // repeated clicks restart the job instead of finishing it early
         bot.setState('working'); st.textContent = 'working…';
-        setTimeout(() => { bot.setState('done'); st.textContent = ''; }, 3200);
+        timer = setTimeout(() => { bot.setState('done'); st.textContent = ''; }, 3200);
       };
     });
   });
