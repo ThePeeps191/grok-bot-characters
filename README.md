@@ -32,7 +32,8 @@ What the source material shows (the Grok Bot beta launch from Aug 2026, the "Mee
 - **22 shapes**: the 13 picker shapes plus 9 extras (egg, squircle, octagon, star, heart, ghost, blob, shield, leaf).
 - **20 colors**: the 11 picker colors plus 9 extras (yellow, lime, sky, indigo, coral, mint, lavender, navy, white). Light bodies automatically get dark eyes.
 - **9 states**: `idle`, `typing` (Wait), `working` (Work), `done` (Response), `alert` ("!"), `notify`, `sleeping`, `sad`, `listening`.
-- **Actions**: `blink(double)`, `wink()`, `bounce()`, `spit()`, `surprise()`, `shake()`, `spin()`, `intro()`, `look(x, y)`, `morph(shape)`.
+- **Actions**: `blink(double)`, `wink()`, `bounce()`, `spit()`, `surprise()`, `shake()`, `spin(dir, { turns, dur, tilt })`, `intro()`, `look(x, y)`, `morph(shape)`.
+- **3D spin**: the spin rolls the bot head over heels toward you, as in the footage, rather than turning it like a flat disc. The eyes slide down the face, swell as they pass the front, disappear while the back is showing, then come back over the top. The working state does this tumble between shape changes.
 - **8 expressions**: `normal`, `happy`, `squint`, `surprised`, `round`, `sleepy`, `sad`, `focused`.
 - **Idle behavior**: random blinks (sometimes double), glances, and occasional mischief such as spits, bounces and winks. The bot can optionally follow the pointer with its eyes.
 
@@ -41,6 +42,8 @@ What the source material shows (the Grok Bot beta launch from Aug 2026, the "Mee
 ## How it works
 
 Each shape is a **signed distance function**: circles, rounded polygons and stars, capsules, smooth unions of circles, and a heart. At load time each SDF is sampled into a ring of 72 points by casting rays from the center. Every shape has the same number of points, so any shape morphs into any other by moving point *i* to point *i*. Each point is a damped spring, which gives the jelly-like wobble. The outline is drawn as a closed Catmull-Rom spline.
+
+For the 3D spin, the outline is treated as a puffy pillow and cut into stacked slices: scaled copies of the outline at heights that follow a sphere-like profile. Each slice is rolled around a slightly tilted horizontal axis and projected. The new silhouette is the farthest point any slice reaches along each outline point's ray from the center. A circle stays a sphere, while a triangle flips to show its mirrored back. The eyes are points on the curved front surface: they roll with it, flatten as they turn edge-on, and hide when facing away.
 
 Squash, bounce, eye position, eye size, blinks, the badge and the "!" dot are all springs too. A single shared `requestAnimationFrame` loop drives every bot on the page, and bots that scroll off-screen pause through an `IntersectionObserver`.
 
