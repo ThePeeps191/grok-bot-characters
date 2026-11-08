@@ -18,6 +18,12 @@
 
   const NS = 'http://www.w3.org/2000/svg';
   const N = 72; // points per outline
+  const PUFF = 0.9; // how thick ("pillowy") a bot is when it tumbles in 3D (1 = sphere-like)
+  // [scale, height] of the stacked slices used to build the 3D silhouette while tumbling
+  const SLICES = Array.from({ length: 17 }, (_, i) => {
+    const a = (i / 16) * (Math.PI / 2) * 0.97;
+    return [Math.cos(a), i ? PUFF * Math.sin(a) : 0];
+  });
   const TAU = Math.PI * 2;
   const DEG = Math.PI / 180;
 
@@ -430,7 +436,8 @@
             const cycle = ['egg', 'hexagon', 'triangle', 'circle', 'pentagon', 'drop', 'squircle', 'pill'];
             const next = cycle[this._workIdx++ % cycle.length];
             this._morphTo(next === this._shapeNow ? 'circle' : next, true);
-            s.rot.kick(rand(-120, 120));
+            if (this._workIdx % 2) this.spin(Math.random() < 0.7 ? 1 : -1, { tilt: rand(-35, 35) });
+            else s.rot.kick(rand(-120, 120));
           });
           break;
         case 'done':
@@ -493,10 +500,16 @@
       this._after(0.9, () => this.setExpression(prev === 'surprised' ? 'normal' : prev));
       return this;
     }
-    spin(dir = Math.random() < 0.5 ? -1 : 1) {
-      // one full turn with a little overshoot, plus a hop and a squash
-      this._spin = { start: this._time, dur: 0.8, dir, from: this._spinAngle() };
-      this.s.y.kick(-4); this._squash(-0.15);
+    /**
+     * 3D tumble, as in the official footage. The bot rolls head over heels around
+     * a (slightly tilted) horizontal axis with its top coming toward the viewer.
+     * The eyes slide down the face and hide while the back is showing, then come
+     * back over the top. dir = 1 rolls forward, -1 rolls backward.
+     */
+    spin(dir = 1, { turns = 1, dur = 1.05, tilt = rand(-18, 18) } = {}) {
+      const cur = this._tumble();
+      this._spin = { start: this._time, dur: dur * turns, dir, turns, tilt, from: cur ? cur.phi % TAU : 0 };
+      this.s.y.kick(-5); this._squash(-0.14);
       return this;
     }
     intro() {
@@ -527,14 +540,67 @@
     /* ---------------- internals ---------------- */
     _after(t, fn) { this._timers.push({ at: this._time + t, fn }); }
     _every(t, fn) { const tick = () => { fn(); this._after(t, tick); }; this._after(t * 0.6, tick); }
-    _spinAngle() {
+    // Current tumble: phi = roll angle (radians), a = axis tilt (radians), p = progress 0..1
+    _tumble() {
       const sp = this._spin;
-      if (!sp) return 0;
+      if (!sp) return null;
       const p = clamp((this._time - sp.start) / sp.dur, 0, 1);
-      const c1 = 1.70158, c3 = c1 + 1; // easeOutBack
-      const e = 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2);
-      if (p >= 1) { this._spin = null; return 0; }
-      return sp.from * (1 - p) + 360 * sp.dir * e;
+      if (p >= 1) { this._spin = null; return null; }
+      // ease in, roll, overshoot by ~20° and settle back
+      const K = 0.35; // short ease-in, long ease-out (value and slope match at p = K)
+      const io = p < K ? (p * p) / K : 1 - ((1 - p) * (1 - p)) / (1 - K);
+      const e = io + 0.055 * Math.sin(Math.PI * clamp((p - 0.5) / 0.5, 0, 1));
+      return { phi: sp.from * (1 - p) + TAU * sp.turns * sp.dir * e, a: sp.tilt * DEG, p };
+    }
+    // Silhouette of the outline treated as a puffy 3D pillow, rolled by phi around the tilted axis.
+    // The pillow is cut into stacked slices (scaled copies of the outline at height ±z on a
+    // sphere-like profile). Each slice is rolled and projected, then for every outline point we
+    // cast a ray from the centre and keep the farthest crossing. At phi = 0 this returns the
+    // original outline exactly, so there is no pop at the start or end of a spin.
+    _tumbleOutline(src, tb) {
+      const out = this._tp || (this._tp = new Float32Array(N * 2));
+      const poly = this._tpoly || (this._tpoly = new Float32Array(N * 2));
+      const R = this._tR || (this._tR = new Float32Array(N));
+      const ca = Math.cos(tb.a), sa = Math.sin(tb.a), cp = Math.cos(tb.phi), sp = Math.sin(tb.phi);
+      R.fill(0);
+      for (const [k, z] of SLICES) {
+        for (const zz of z ? [z, -z] : [0]) {
+          for (let i = 0; i < N; i++) {
+            const x = src[i * 2] * k, y = src[i * 2 + 1] * k;
+            const u = x * ca + y * sa, v = -x * sa + y * ca;
+            const v2 = v * cp + zz * sp;
+            poly[i * 2] = u * ca - v2 * sa; poly[i * 2 + 1] = u * sa + v2 * ca;
+          }
+          for (let j = 0; j < N; j++) {
+            const dl = Math.hypot(src[j * 2], src[j * 2 + 1]) || 1, dx = src[j * 2] / dl, dy = src[j * 2 + 1] / dl;
+            let best = R[j];
+            for (let i = 0, m = N - 1; i < N; m = i++) {
+              const ax = poly[m * 2], ay = poly[m * 2 + 1], ex = poly[i * 2] - ax, ey = poly[i * 2 + 1] - ay;
+              const den = dx * ey - dy * ex;
+              if (den > -1e-9 && den < 1e-9) continue;
+              const t = (ax * ey - ay * ex) / den, sg = (ax * dy - ay * dx) / den;
+              if (sg >= 0 && sg <= 1 && t > best) best = t;
+            }
+            R[j] = best;
+          }
+        }
+      }
+      // Smooth away the slice steps. The strength follows how edge-on the bot is, so at rest the
+      // outline is untouched.
+      const sm = this._tR2 || (this._tR2 = new Float32Array(N));
+      const wgt = Math.abs(sp);
+      for (let pass = 0; pass < 3; pass++) {
+        for (let j = 0; j < N; j++) {
+          const avg = (R[(j + N - 2) % N] + 2 * R[(j + N - 1) % N] + 3 * R[j] + 2 * R[(j + 1) % N] + R[(j + 2) % N]) / 9;
+          sm[j] = R[j] + (avg - R[j]) * wgt;
+        }
+        R.set(sm);
+      }
+      for (let j = 0; j < N; j++) {
+        const dl = Math.hypot(src[j * 2], src[j * 2 + 1]) || 1, r = R[j] || dl * 0.2;
+        out[j * 2] = src[j * 2] / dl * r; out[j * 2 + 1] = src[j * 2 + 1] / dl * r;
+      }
+      return out;
     }
     _squash(a) { this.s.sx.kick(a * 9); this.s.sy.kick(-a * 9); }
 
@@ -609,10 +675,12 @@
       const breathe = this.state === 'sleeping' ? 1 + Math.sin(t * 1.6) * 0.03 : 1 + Math.sin(t * 2.2 + this.id) * 0.012;
       let sc = Math.max(0, s.scale.x) * breathe;
       if (this.state === 'typing') sc *= 1 + 0.25 * Math.sin(t * 7.5 - 2.1);
-      const sx = sc * s.sx.x, sy = sc * s.sy.x;
       const ty = s.y.x * 0.08 + (1 - s.sy.x) * 0.6 * sc;
-      this.body.setAttribute('d', pathFromPoints(this._p));
-      this.gBody.setAttribute('transform', `translate(${(s.x.x * 0.06).toFixed(3)} ${ty.toFixed(3)}) rotate(${(s.rot.x + this._spinAngle()).toFixed(2)}) scale(${sx.toFixed(4)} ${sy.toFixed(4)})`);
+      const tb = this._tumble();
+      if (tb) { const lean = 1 + 0.1 * Math.sin(Math.PI * Math.min(tb.p * 1.4, 1)); sc *= lean; } // rolls toward the viewer
+      const sx = sc * s.sx.x, sy = sc * s.sy.x;
+      this.body.setAttribute('d', pathFromPoints(tb ? this._tumbleOutline(this._p, tb) : this._p));
+      this.gBody.setAttribute('transform', `translate(${(s.x.x * 0.06).toFixed(3)} ${ty.toFixed(3)}) rotate(${s.rot.x.toFixed(2)}) scale(${sx.toFixed(4)} ${sy.toFixed(4)})`);
 
       // eyes
       const op = clamp(s.eyeOp.x, 0, 1);
@@ -623,15 +691,30 @@
         const cx = s.eyeAX.x + lx * 0.34 * es, cy = s.eyeAY.x + ly * 0.34 * es + s.edy.x;
         const gap = s.egap.x * es;
         const drawEye = (node, side, open) => {
-          const ex = cx + side * gap / 2, ey = cy;
+          let ex = cx + side * gap / 2, ey = cy;
           const fore = clamp(1 - Math.max(0, len(ex, ey) - 0.38) * 1.1, 0.45, 1); // foreshortening near the rim
           const w = Math.max(0.01, s.ew.x * es * fore);
           const hh = Math.max(0.012, s.eh.x * es * clamp(open, 0, 1.2));
           const r = Math.min(w, hh) / 2;
+          let pre = '', vis = 1;
+          if (tb) {
+            // the eye is painted on the pillow's curved front, so roll that 3D point with the body
+            const ca = Math.cos(tb.a), sa = Math.sin(tb.a), cp = Math.cos(tb.phi), sp = Math.sin(tb.phi);
+            const z = PUFF * Math.sqrt(Math.max(0.04, 1 - ex * ex - ey * ey));
+            const u = ex * ca + ey * sa, v = -ex * sa + ey * ca;
+            const v2 = v * cp + z * sp, z2 = -v * sp + z * cp;
+            const nl = Math.hypot(v, z) || 1, nz0 = z / nl, nz = (-v * sp + z * cp) / nl; // facing, before and after
+            const face = nz / Math.max(nz0, 0.2);                 // squash as it turns edge-on
+            const persp = 1 + 0.75 * (z2 - z);                     // grows as it comes toward the viewer
+            vis = clamp(nz * 5, 0, 1);                             // hidden on the back
+            ex = u * ca - v2 * sa; ey = u * sa + v2 * ca;
+            pre = `rotate(${(tb.a / DEG).toFixed(2)}) scale(${persp.toFixed(3)} ${(persp * clamp(face, 0.04, 1.3)).toFixed(3)}) rotate(${(-tb.a / DEG).toFixed(2)}) `;
+          }
+          node.setAttribute('opacity', vis.toFixed(3));
           node.setAttribute('x', (-w / 2).toFixed(4)); node.setAttribute('y', (-hh / 2).toFixed(4));
           node.setAttribute('width', w.toFixed(4)); node.setAttribute('height', hh.toFixed(4));
           node.setAttribute('rx', r.toFixed(4)); node.setAttribute('ry', r.toFixed(4));
-          node.setAttribute('transform', `translate(${ex.toFixed(4)} ${ey.toFixed(4)}) rotate(${(s.erot.x + lx * 6).toFixed(2)})`);
+          node.setAttribute('transform', `translate(${ex.toFixed(4)} ${ey.toFixed(4)}) ${pre}rotate(${(s.erot.x + lx * 6).toFixed(2)})`);
         };
         drawEye(this.eyeL, -1, s.openL.x);
         drawEye(this.eyeR, 1, s.openR.x);
